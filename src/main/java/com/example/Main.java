@@ -39,6 +39,7 @@ import java.util.Map;
 public class Main {
 
   @Value("${spring.datasource.url}")
+  // @Value("jdbc:postgresql://localhost/gracerobbins?user=gracerobbins&password=mypassword&ssl=false")
   private String dbUrl;
 
   @Autowired
@@ -73,6 +74,31 @@ public class Main {
       return "error";
     }
   }
+
+  @RequestMapping("/searchresults")
+  String searchresults(Map<String, Object> model) {
+    try (Connection connection = dataSource.getConnection()) {
+      Statement stmt = connection.createStatement();
+      stmt.executeUpdate("CREATE TABLE IF NOT EXISTS ResearchDivision(name VARCHAR(255) PRIMARY KEY, description VARCHAR(500), relatedWords VARCHAR(1000))");
+      stmt.executeUpdate("CREATE TABLE IF NOT EXISTS Professor(netId VARCHAR(15) PRIMARY KEY, name VARCHAR(255) NOT NULL, email VARCHAR(255) NOT NULL, department VARCHAR(255), researchDivision VARCHAR(255) REFERENCES ResearchDivision(name))");
+      stmt.executeUpdate("CREATE TABLE IF NOT EXISTS Student(netId VARCHAR(15) PRIMARY KEY, name VARCHAR(255) NOT NULL, yearGraduating INT, major VARCHAR(255) NOT NULL, professor VARCHAR(15) REFERENCES Professor(netId))");
+      stmt.executeUpdate("CREATE TABLE IF NOT EXISTS PersonalInterests(interest_id INT GENERATED ALWAYS AS IDENTITY, professor VARCHAR(15) REFERENCES Professor(netId), student VARCHAR(15) REFERENCES Student(netId), departmentInterests VARCHAR(1000), nondepartmentInterests VARCHAR(1000))");
+      stmt.executeUpdate("CREATE TABLE IF NOT EXISTS Qualifications(qualificationId INT GENERATED ALWAYS AS IDENTITY, studentId VARCHAR(15) NOT NULL REFERENCES Student(netId), skill VARCHAR(255), organization VARCHAR(255), award VARCHAR(255))");
+      // ResultSet rs = stmt.executeQuery("SELECT tick FROM ticks");
+
+      ArrayList<String> output = new ArrayList<String>();
+      // while (rs.next()) {
+      output.add("Read tables created i think");
+      // }
+
+      model.put("records", output);
+      return "searchresults";
+    } catch (Exception e) {
+      model.put("message", e.getMessage());
+      return "error";
+    }
+  }
+
 
   @Bean
   public DataSource dataSource() throws SQLException {
