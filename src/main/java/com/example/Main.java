@@ -27,6 +27,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -40,8 +42,8 @@ import java.util.Map;
 @SpringBootApplication
 public class Main {
 
-  // @Value("${spring.datasource.url}")
-  @Value("jdbc:postgresql://localhost/gracerobbins?user=gracerobbins&password=mypassword&ssl=false")
+  @Value("${spring.datasource.url}")
+  // @Value("jdbc:postgresql://localhost/gracerobbins?user=gracerobbins&password=mypassword&ssl=false")
   private String dbUrl;
 
   @Autowired
@@ -113,60 +115,99 @@ public class Main {
   }
 
   @PostMapping("/updateProfessor")
-  public String updatePost(UpdateForm submission, Map<String, Object> model) {
-    model.put("updateResults", submission.getProfessorNetId());
-    try (Connection connection = dataSource.getConnection()) {
-      Statement stmt = connection.createStatement();
+  public String updatePost(HttpServletRequest request, HttpServletResponse response, UpdateForm submission, Map<String, Object> model) {
+    if (request.getParameter("Update") != null) {
+    //action for update here
+        model.put("updateResults", submission.getProfessorNetId());
+        try (Connection connection = dataSource.getConnection()) {
+          Statement stmt = connection.createStatement();
 
-      ArrayList<String> output = new ArrayList<String>();//Sarita Adve
+          ArrayList<String> output = new ArrayList<String>();//Sarita Adve
 
-      ResultSet firstCheck = stmt.executeQuery("SELECT * FROM Professor WHERE netId = '" + submission.getProfessorNetId() + "'");
-      int numRows = 0;
-      while (firstCheck.next()) {
-        numRows++;
-      }
-      if (numRows == 1) {//if there are rows
-        ResultSet prof = stmt.executeQuery("SELECT * FROM Professor WHERE netId = '" + submission.getProfessorNetId() + "'");
-        prof.next();
+          ResultSet firstCheck = stmt.executeQuery("SELECT * FROM Professor WHERE netId = '" + submission.getProfessorNetId() + "'");
+          int numRows = 0;
+          while (firstCheck.next()) {
+            numRows++;
+          }
+          if (numRows == 1) {//if there are rows
+            ResultSet prof = stmt.executeQuery("SELECT * FROM Professor WHERE netId = '" + submission.getProfessorNetId() + "'");
+            prof.next();
 
-        String oldName = prof.getString("name");
-        String oldEmail = prof.getString("email");
-        String oldDepartment = prof.getString("department");
-        String oldDivision = prof.getString("researchDivision");
+            String oldName = prof.getString("name");
+            String oldEmail = prof.getString("email");
+            String oldDepartment = prof.getString("department");
+            String oldDivision = prof.getString("researchDivision");
 
-        if (submission.getProfessorName() != null && submission.getProfessorName() != "") {
-          output.add("Updating name for " + oldName  + "...");
-          stmt.execute("UPDATE Professor SET name = '" + submission.getProfessorName() + "' WHERE netId = '" + submission.getProfessorNetId() + "'");
-          output.add("New name: " + submission.getProfessorName());
+            if (submission.getProfessorName() != null && submission.getProfessorName() != "") {
+              output.add("Updating name for " + oldName  + "...");
+              stmt.execute("UPDATE Professor SET name = '" + submission.getProfessorName() + "' WHERE netId = '" + submission.getProfessorNetId() + "'");
+              output.add("New name: " + submission.getProfessorName());
+            }
+            if (submission.getProfessorEmail() != null && submission.getProfessorEmail() != "") {
+              output.add("Updating email for " + oldEmail + "...");
+              stmt.execute("UPDATE Professor SET email = '" + submission.getProfessorEmail() + "' WHERE netId = '" + submission.getProfessorNetId() + "'");
+              output.add("New email address: " + submission.getProfessorEmail());
+            }
+            if (submission.getProfessorDepartment() != null && submission.getProfessorDepartment() != "") {
+              output.add("Updating department from " + oldDepartment + " to ...");
+              stmt.execute("UPDATE Professor SET department = '" + submission.getProfessorDepartment() + "' WHERE netId = '" + submission.getProfessorNetId() + "'");
+              output.add("New department: " + submission.getProfessorDepartment());
+            }
+            if (submission.getDivisionName() != null && submission.getDivisionName() != "") {
+              output.add("Updating research division for " + oldDivision + "...");
+              stmt.execute("UPDATE Professor SET researchDivision = '" + submission.getDivisionName() + "' WHERE netId = '" + submission.getProfessorNetId() + "'");
+              output.add("New research division: " + submission.getDivisionName());
+            }
+            prof.close();
+          }
+          else {
+            output.add("No professor with netId " + submission.getProfessorNetId() + " found.");
+          }
+
+          model.put("updateResults", output);
+          return "updateResults";
+        } catch (Exception e) {
+          model.put("message", e.getMessage());
+          return "error";
         }
-        if (submission.getProfessorEmail() != null && submission.getProfessorEmail() != "") {
-          output.add("Updating email for " + oldEmail + "...");
-          stmt.execute("UPDATE Professor SET email = '" + submission.getProfessorEmail() + "' WHERE netId = '" + submission.getProfessorNetId() + "'");
-          output.add("New email address: " + submission.getProfessorEmail());
-        }
-        if (submission.getProfessorDepartment() != null && submission.getProfessorDepartment() != "") {
-          output.add("Updating department from " + oldDepartment + " to ...");
-          stmt.execute("UPDATE Professor SET department = '" + submission.getProfessorDepartment() + "' WHERE netId = '" + submission.getProfessorNetId() + "'");
-          output.add("New department: " + submission.getProfessorDepartment());
-        }
-        if (submission.getDivisionName() != null && submission.getDivisionName() != "") {
-          output.add("Updating research division for " + oldDivision + "...");
-          stmt.execute("UPDATE Professor SET researchDivision = '" + submission.getDivisionName() + "' WHERE netId = '" + submission.getProfessorNetId() + "'");
-          output.add("New research division: " + submission.getDivisionName());
-        }
-        prof.close();
-      }
-      else {
-        output.add("No professor with netId " + submission.getProfessorNetId() + " found.");
-      }
-
-      model.put("updateResults", output);
-      return "updateResults";
-    } catch (Exception e) {
-      model.put("message", e.getMessage());
-      return "error";
-    }
     
+    } else {
+      //action for delete
+        model.put("Creation Results", submission.getProfessorNetId());
+        try (Connection connection = dataSource.getConnection()) {
+          Statement stmt = connection.createStatement();
+          ArrayList<String> output = new ArrayList<String>();
+
+          ResultSet firstCheck = stmt.executeQuery("SELECT * FROM Professor WHERE netId = '" + submission.getProfessorNetId() + "'");
+          int numRows = 0;
+          while (firstCheck.next()) {
+            numRows++;
+          }
+          ResultSet secondCheck = stmt.executeQuery("SELECT name FROM ResearchDivision WHERE name = '" + submission.getDivisionName() + "'");
+          int numDivisions = 0;
+          while (secondCheck.next()) {
+            numDivisions++;
+          }
+          if (numRows == 0 && numDivisions > 0) {//if the professor does not exist
+            if (submission.getProfessorName() != null && submission.getProfessorName() != "" && submission.getProfessorNetId() != null && submission.getProfessorNetId() != "") {
+              stmt.execute("INSERT INTO Professor VALUES ('" + submission.getProfessorNetId() + "', '" + submission.getProfessorName() + "', '" + submission.getProfessorEmail() + "', '" + submission.getProfessorDepartment() + "', '" + submission.getDivisionName() + "')");
+              output.add("Professor " + submission.getProfessorName() + " added to the database!");            
+            }
+            else {
+              output.add("Please enter non-null name and netid");
+            }
+          }
+          else {
+            output.add("Professor with netId " + submission.getProfessorNetId() + " already exists or that research division does not exist. Please submit a valid form.");
+          }
+
+          model.put("updateResults", output);
+          return "updateResults";
+        } catch (Exception e) {
+          model.put("message", e.getMessage());
+          return "error";
+        }
+    } 
   }
 
   @Bean
