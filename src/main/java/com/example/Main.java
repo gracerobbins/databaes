@@ -40,8 +40,8 @@ import java.util.Map;
 @SpringBootApplication
 public class Main {
 
-  @Value("${spring.datasource.url}")
-  // @Value("jdbc:postgresql://localhost/gracerobbins?user=gracerobbins&password=mypassword&ssl=false")
+  // @Value("${spring.datasource.url}")
+  @Value("jdbc:postgresql://localhost/gracerobbins?user=gracerobbins&password=mypassword&ssl=false")
   private String dbUrl;
 
   @Autowired
@@ -131,6 +131,7 @@ public class Main {
 
         String oldName = prof.getString("name");
         String oldEmail = prof.getString("email");
+        String oldDepartment = prof.getString("department");
         String oldDivision = prof.getString("researchDivision");
 
         if (submission.getProfessorName() != null && submission.getProfessorName() != "") {
@@ -142,6 +143,11 @@ public class Main {
           output.add("Updating email for " + oldEmail + "...");
           stmt.execute("UPDATE Professor SET email = '" + submission.getProfessorEmail() + "' WHERE netId = '" + submission.getProfessorNetId() + "'");
           output.add("New email address: " + submission.getProfessorEmail());
+        }
+        if (submission.getProfessorDepartment() != null && submission.getProfessorDepartment() != "") {
+          output.add("Updating department from " + oldDepartment + " to ...");
+          stmt.execute("UPDATE Professor SET department = '" + submission.getProfessorDepartment() + "' WHERE netId = '" + submission.getProfessorNetId() + "'");
+          output.add("New department: " + submission.getProfessorDepartment());
         }
         if (submission.getDivisionName() != null && submission.getDivisionName() != "") {
           output.add("Updating research division for " + oldDivision + "...");
