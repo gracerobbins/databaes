@@ -107,6 +107,61 @@ public class Main {
     }
   }
 
+  @GetMapping("/updateProfessor")
+  public String updateGet() {
+    return "updateForm";
+  }
+
+  @PostMapping("/updateProfessor")
+  public String updatePost(UpdateForm submission, Map<String, Object> model) {
+    model.put("updateResults", submission.getProfessorNetId());
+    try (Connection connection = dataSource.getConnection()) {
+      Statement stmt = connection.createStatement();
+
+      ArrayList<String> output = new ArrayList<String>();//Sarita Adve
+
+      ResultSet firstCheck = stmt.executeQuery("SELECT * FROM Professor WHERE netId = '" + submission.getProfessorNetId() + "'");
+      int numRows = 0;
+      while (firstCheck.next()) {
+        numRows++;
+      }
+      if (numRows == 1) {//if there are rows
+        ResultSet prof = stmt.executeQuery("SELECT * FROM Professor WHERE netId = '" + submission.getProfessorNetId() + "'");
+        prof.next();
+
+        String oldName = prof.getString("name");
+        String oldEmail = prof.getString("email");
+        String oldDivision = prof.getString("researchDivision");
+
+        if (submission.getProfessorName() != null && submission.getProfessorName() != "") {
+          output.add("Updating name for " + oldName  + "...");
+          stmt.execute("UPDATE Professor SET name = '" + submission.getProfessorName() + "' WHERE netId = '" + submission.getProfessorNetId() + "'");
+          output.add("New name: " + submission.getProfessorName());
+        }
+        if (submission.getProfessorEmail() != null && submission.getProfessorEmail() != "") {
+          output.add("Updating email for " + oldEmail + "...");
+          stmt.execute("UPDATE Professor SET email = '" + submission.getProfessorEmail() + "' WHERE netId = '" + submission.getProfessorNetId() + "'");
+          output.add("New email address: " + submission.getProfessorEmail());
+        }
+        if (submission.getDivisionName() != null && submission.getDivisionName() != "") {
+          output.add("Updating research division for " + oldDivision + "...");
+          stmt.execute("UPDATE Professor SET researchDivision = '" + submission.getDivisionName() + "' WHERE netId = '" + submission.getProfessorNetId() + "'");
+          output.add("New research division: " + submission.getDivisionName());
+        }
+        prof.close();
+      }
+      else {
+        output.add("No professor with netId " + submission.getProfessorNetId() + " found.");
+      }
+
+      model.put("updateResults", output);
+      return "updateResults";
+    } catch (Exception e) {
+      model.put("message", e.getMessage());
+      return "error";
+    }
+    
+  }
 
   @Bean
   public DataSource dataSource() throws SQLException {
