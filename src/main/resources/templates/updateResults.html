@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout (~{::body},'searchresults')}">
+
+<body>
+
+
+<div class="container">
+  <h1>Results Updated:</h1>
+  <ul th:each="line : ${updateResults}">
+    <li th:text="${line}"/>
+  </ul>
+</div>
+
+</body>
+</html>

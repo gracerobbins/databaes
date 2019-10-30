@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout (~{::body},'index')}">
+
+
+
+<body>
+  <h2>Update Form</h2>
+  <form action="/updateProfessor" method="post">
+    Update Information for the Following NetId:<br>
+    <input type="text" name="professorNetId">
+    <br><br>
+    New Name (optional):<br>
+    <input type="text" name="professorName">
+    <br><br>
+    New Email (optional):<br>
+    <input type="text" name="professorEmail">
+    <br><br>
+    New Department Name (optional):<br>
+    <input type="text" name="professorDepartment">
+    <br><br>
+    New Research Division Name (optional):<br>
+    <input type="text" name="divisionName">
+    <br><br>
+    <input type="submit" value="Submit">
+  </form>
+</body>
+</html>
