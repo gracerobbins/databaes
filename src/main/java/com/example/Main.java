@@ -171,8 +171,8 @@ public class Main {
           return "error";
         }
     
-    } else {
-      //action for delete
+    } else if (request.getParameter("Add") != null) {
+        //action for add
         model.put("Creation Results", submission.getProfessorNetId());
         try (Connection connection = dataSource.getConnection()) {
           Statement stmt = connection.createStatement();
@@ -199,6 +199,40 @@ public class Main {
           }
           else {
             output.add("Professor with netId " + submission.getProfessorNetId() + " already exists or that research division does not exist. Please submit a valid form.");
+          }
+
+          model.put("updateResults", output);
+          return "updateResults";
+        } catch (Exception e) {
+          model.put("message", e.getMessage());
+          return "error";
+        }
+    } 
+    else {
+        //action for delete
+        model.put("Deletion Results", submission.getProfessorNetId());
+        try (Connection connection = dataSource.getConnection()) {
+          Statement stmt = connection.createStatement();
+          ArrayList<String> output = new ArrayList<String>();
+
+          ResultSet firstCheck = stmt.executeQuery("SELECT * FROM Professor WHERE netId = '" + submission.getProfessorNetId() + "'");
+          int numRows = 0;
+          while (firstCheck.next()) {
+            numRows++;
+          }
+          if (numRows != 0) {//if the professor does not exist
+            if (submission.getProfessorNetId() != null && submission.getProfessorNetId() != "") {
+              stmt.execute("UPDATE student SET professor = NULL WHERE professor = '" + submission.getProfessorNetId() + "'");
+              stmt.execute("DELETE FROM personalInterests WHERE professor = '" + submission.getProfessorNetId() + "'");
+              stmt.execute("DELETE FROM Professor WHERE netId = '" + submission.getProfessorNetId() + "'");
+              output.add("Professor with netid " + submission.getProfessorNetId() + " has been removed from the database");            
+            }
+            else {
+              output.add("Please enter non-null netid");
+            }
+          }
+          else {
+            output.add("Professor with netId " + submission.getProfessorNetId() + " does not exist in out database.");
           }
 
           model.put("updateResults", output);
