@@ -42,8 +42,8 @@ import java.util.Map;
 @SpringBootApplication
 public class Main {
 
-  @Value("${spring.datasource.url}")
-  // @Value("jdbc:postgresql://localhost/gracerobbins?user=gracerobbins&password=mypassword&ssl=false")
+  // @Value("${spring.datasource.url}")
+  @Value("jdbc:postgresql://localhost/gracerobbins?user=gracerobbins&password=mypassword&ssl=false")
   private String dbUrl;
 
   @Autowired
@@ -93,28 +93,67 @@ public class Main {
       stmt.executeUpdate("CREATE TABLE IF NOT EXISTS Student(netId VARCHAR(15) PRIMARY KEY, name VARCHAR(255) NOT NULL, yearGraduating INT, major VARCHAR(255) NOT NULL, professor VARCHAR(15) REFERENCES Professor(netId))");
       stmt.executeUpdate("CREATE TABLE IF NOT EXISTS PersonalInterests(interest_id INT GENERATED ALWAYS AS IDENTITY, professor VARCHAR(15) REFERENCES Professor(netId), student VARCHAR(15) REFERENCES Student(netId), departmentInterests VARCHAR(5000), nondepartmentInterests VARCHAR(5000))");
       stmt.executeUpdate("CREATE TABLE IF NOT EXISTS Qualifications(qualificationId INT GENERATED ALWAYS AS IDENTITY, studentId VARCHAR(15) NOT NULL REFERENCES Student(netId), skill VARCHAR(255), organization VARCHAR(255), award VARCHAR(255))");
-       ArrayList<String> output = new ArrayList<String>();
-      if(submission.getDivisionName() != null){
-      ResultSet rs = stmt.executeQuery("SELECT * FROM ResearchDivision WHERE name LIKE '%" + submission.getDivisionName() + "%'");
-      while (rs.next()) {
-        output.add("Department: " + rs.getString("name"));
+      
+      ArrayList<String> division = new ArrayList<String>();
+      if(submission.getDivisionName() != null && !submission.getDivisionName().isEmpty()){
+        ResultSet rs = stmt.executeQuery("SELECT * FROM Professor WHERE researchdivision ILIKE '%" + submission.getDivisionName() + "%'");
+        while (rs.next()) {
+          //output.add("Research Division: " + rs.getString("name"));
+          division.add("Professor: " + rs.getString("name") + "; Email: " + rs.getString("email") + "; Department: " + rs.getString("department") + "; Research Division: " + rs.getString("researchdivision"));
+        }
       }
+      model.put("divisionRecords", division);
+
+      ArrayList<String> professor = new ArrayList<String>();
+      if(submission.getProfessorName() != null && !submission.getProfessorName().isEmpty()){
+          ResultSet rs = stmt.executeQuery("SELECT * FROM Professor WHERE name ILIKE '%" + submission.getProfessorName() + "%'");
+          while (rs.next()) {
+            professor.add("Professor: " + rs.getString("name") + "; Email: " + rs.getString("email") + "; Department: " + rs.getString("department") + "; Research Division: " + rs.getString("researchdivision"));
+          }
       }
-      else if(submission.getProfessorName() != null){
-           ResultSet rs = stmt.executeQuery("SELECT * FROM Professor WHERE name LIKE '%" + submission.getProfessorName() + "%'");
-      while (rs.next()) {
-        output.add("Department: " + rs.getString("name"));
+      model.put("professorRecords", professor);
+
+      ArrayList<String> department = new ArrayList<String>();
+      if(submission.getDepartmentName() != null && !submission.getDepartmentName().isEmpty()){
+          ResultSet rs = stmt.executeQuery("SELECT * FROM Professor WHERE department ILIKE '%" + submission.getDepartmentName() + "%'");
+          while (rs.next()) {
+            //output.add("Professor: " + rs.getString("name") + ",  email address: " + rs.getString("email") + ",  department: " + rs.getString("department"));
+            //output.add("3Department: " + rs.getString("name"));
+            department.add("Professor: " + rs.getString("name") + "; Email: " + rs.getString("email") + "; Department: " + rs.getString("department") + "; Research Division: " + rs.getString("researchdivision"));
+          }
       }
+      model.put("departmentRecords", department);
+
+      ArrayList<String> combo = new ArrayList<String>();
+      int numCriteria = 0;
+      String query = "SELECT * FROM Professor WHERE ";
+      if(submission.getDepartmentName() != null && !submission.getDepartmentName().isEmpty()){
+        query += "department ILIKE '%" + submission.getDepartmentName() + "%'";
+        numCriteria++;
       }
-      else if(submission.getDepartmentName() != null ){
-        ResultSet rs = stmt.executeQuery("SELECT * FROM Professor WHERE department LIKE '%" + submission.getDepartmentName() + "%'");
-      while (rs.next()) {
-        //output.add("Professor: " + rs.getString("name") + ",  email address: " + rs.getString("email") + ",  department: " + rs.getString("department"));
-        output.add("Department: " + rs.getString("name"));
+      if(submission.getDivisionName() != null && !submission.getDivisionName().isEmpty()){
+        if (numCriteria > 0) {
+          query += " AND ";
+        }
+        query += "researchdivision ILIKE '%" + submission.getDivisionName() + "%'";
+        numCriteria++;
       }
+      if(submission.getProfessorName() != null && !submission.getProfessorName().isEmpty()){
+        if (numCriteria > 0) {
+          query += " AND ";
+        }
+        query += "name ILIKE '%" + submission.getProfessorName() + "%'";
+        numCriteria++;
       }
+      if (numCriteria > 0) {
+        ResultSet rs = stmt.executeQuery(query);
+        while (rs.next()) {
+          combo.add("Professor: " + rs.getString("name") + "; Email: " + rs.getString("email") + "; Department: " + rs.getString("department") + "; Research Division: " + rs.getString("researchdivision"));
+        }
+      }
+      model.put("comboRecords", combo);
    
-      model.put("records", output);
+     // model.put("records", output);
       return "searchresults";
     } catch (Exception e) {
       model.put("message", e.getMessage());

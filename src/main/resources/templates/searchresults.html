@@ -6,9 +6,23 @@
 
 <div class="container">
   <h1>Search Output</h1>
-  <ul th:each="record : ${records}">
+  <h3>Professors with Professor Name:</h3>
+  <ul th:each="record : ${professorRecords}">
     <li th:text="${record}"/>
   </ul>
+  <h3>Professors in Research Division:</h3>
+  <ul th:each="record : ${divisionRecords}">
+    <li th:text="${record}"/>
+  </ul>
+  <h3>Professors in Department:</h3>
+  <ul th:each="record : ${departmentRecords}">
+    <li th:text="${record}"/>
+  </ul>
+  <h3>Professors Matching All Given Criteria:</h3>
+  <ul th:each="record : ${comboRecords}">
+    <li th:text="${record}"/>
+  </ul>
+  <br><br>
 </div>
 
 </body>

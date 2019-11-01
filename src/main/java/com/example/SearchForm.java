@@ -9,7 +9,6 @@ public class SearchForm {
     public String getProfessorName() {
         return professorName;
     }
-
     public void setProfessorName(String professorName) {
         this.professorName = professorName;
     }
@@ -17,15 +16,14 @@ public class SearchForm {
     public String getDivisionName() {
         return divisionName;
     }
-
     public void setDivisionName(String divisionName) {
         this.divisionName = divisionName;
     }
+
     public String getDepartmentName() {
         return departmentName;
     }
-
-    public void setDepartmentName(String deptartmentName) {
+    public void setDepartmentName(String departmentName) {
         this.departmentName = departmentName;
     }
 }
