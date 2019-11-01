@@ -93,14 +93,27 @@ public class Main {
       stmt.executeUpdate("CREATE TABLE IF NOT EXISTS Student(netId VARCHAR(15) PRIMARY KEY, name VARCHAR(255) NOT NULL, yearGraduating INT, major VARCHAR(255) NOT NULL, professor VARCHAR(15) REFERENCES Professor(netId))");
       stmt.executeUpdate("CREATE TABLE IF NOT EXISTS PersonalInterests(interest_id INT GENERATED ALWAYS AS IDENTITY, professor VARCHAR(15) REFERENCES Professor(netId), student VARCHAR(15) REFERENCES Student(netId), departmentInterests VARCHAR(5000), nondepartmentInterests VARCHAR(5000))");
       stmt.executeUpdate("CREATE TABLE IF NOT EXISTS Qualifications(qualificationId INT GENERATED ALWAYS AS IDENTITY, studentId VARCHAR(15) NOT NULL REFERENCES Student(netId), skill VARCHAR(255), organization VARCHAR(255), award VARCHAR(255))");
+       ArrayList<String> output = new ArrayList<String>();
+      if(submission.getDivisionName() != null){
       ResultSet rs = stmt.executeQuery("SELECT * FROM ResearchDivision WHERE name LIKE '%" + submission.getDivisionName() + "%'");
-
-      ArrayList<String> output = new ArrayList<String>();
+      while (rs.next()) {
+        output.add("Department: " + rs.getString("name"));
+      }
+      }
+      else if(submission.getProfessorName() != null){
+           ResultSet rs = stmt.executeQuery("SELECT * FROM Professor WHERE name LIKE '%" + submission.getProfessorName() + "%'");
+      while (rs.next()) {
+        output.add("Department: " + rs.getString("name"));
+      }
+      }
+      else if(submission.getDepartmentName() != null ){
+        ResultSet rs = stmt.executeQuery("SELECT * FROM Professor WHERE department LIKE '%" + submission.getDepartmentName() + "%'");
       while (rs.next()) {
         //output.add("Professor: " + rs.getString("name") + ",  email address: " + rs.getString("email") + ",  department: " + rs.getString("department"));
         output.add("Department: " + rs.getString("name"));
       }
-
+      }
+   
       model.put("records", output);
       return "searchresults";
     } catch (Exception e) {
