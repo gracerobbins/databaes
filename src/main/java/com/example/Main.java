@@ -45,8 +45,8 @@ import java.util.Map;
 @SpringBootApplication
 public class Main {
 
-  @Value("${spring.datasource.url}")
-  // @Value("jdbc:postgresql://localhost/gracerobbins?user=gracerobbins&password=mypassword&ssl=false")
+  // @Value("${spring.datasource.url}")
+  @Value("jdbc:postgresql://localhost/gracerobbins?user=gracerobbins&password=mypassword&ssl=false")
   private String dbUrl;
 
   @Autowired
@@ -56,38 +56,6 @@ public class Main {
     SpringApplication.run(Main.class, args);
   }
 
-  // @RequestMapping("/graph")
-  // String graph(Map<String, Object> model) {
-  //   // String graphenedbURL = System.getenv("GRAPHENEDB_BOLT_URL");
-  //   // String graphenedbUser = System.getenv("GRAPHENEDB_BOLT_USER");
-  //   // String graphenedbPass = System.getenv("GRAPHENEDB_BOLT_PASSWORD");
-  //   String gdbURL = "https://app149777534-AXikUZ:b.XhT8pu5BrMoS.CVOh6wa6LJMsyNem@hobby-flhcicbddikmgbkeiaajgddl.dbs.graphenedb.com:24780";
-  //   String graphenedbURL = "bolt://hobby-flhcicbddikmgbkeiaajgddl.dbs.graphenedb.com:24787";
-  //   String graphenedbUser = "app149777534-AXikUZ";
-  //   String graphenedbPass = "b.XhT8pu5BrMoS.CVOh6wa6LJMsyNem";
-  //   ArrayList<String> output = new ArrayList<String>();
-    
-  //   try (Driver driver = GraphDatabase.driver(graphenedbURL, AuthTokens.basic(graphenedbUser, graphenedbPass))) {
-  //       Session session = driver.session();
-  //           session.run("CREATE (n:Person {name:'Bob'})");
-  //       StatementResult result = session.run("MATCH (n:Person) RETURN n.name AS name");
-
-  //       while ( result.hasNext() )
-  //       {
-  //         Record record = result.next();
-  //         System.out.println( record.get("name").asString() );
-  //         output.add("read from graph DB: " + record.get("name").asString() );
-  //       }
-  //       model.put("records", output);
-  //       session.close();
-  //       driver.close();
-  //       return "graph";
-  //   } catch (Exception e) {
-  //       output.add("error");
-  //       model.put("records", output);
-  //       return "graph";
-  //   }
-  // }
   void getGraphResults(Map<String, Object> model, SearchForm submission) {
     ArrayList<String> output = new ArrayList<String>();
 
@@ -161,7 +129,6 @@ public class Main {
       if(submission.getDivisionName() != null && !submission.getDivisionName().isEmpty()){
         ResultSet rs = stmt.executeQuery("SELECT * FROM Professor WHERE researchdivision ILIKE '%" + submission.getDivisionName() + "%'");
         while (rs.next()) {
-          //output.add("Research Division: " + rs.getString("name"));
           division.add("Professor: " + rs.getString("name") + "; Email: " + rs.getString("email") + "; Department: " + rs.getString("department") + "; Research Division: " + rs.getString("researchdivision"));
         }
       }
@@ -180,8 +147,6 @@ public class Main {
       if(submission.getDepartmentName() != null && !submission.getDepartmentName().isEmpty()){
           ResultSet rs = stmt.executeQuery("SELECT * FROM Professor WHERE department ILIKE '%" + submission.getDepartmentName() + "%'");
           while (rs.next()) {
-            //output.add("Professor: " + rs.getString("name") + ",  email address: " + rs.getString("email") + ",  department: " + rs.getString("department"));
-            //output.add("3Department: " + rs.getString("name"));
             department.add("Professor: " + rs.getString("name") + "; Email: " + rs.getString("email") + "; Department: " + rs.getString("department") + "; Research Division: " + rs.getString("researchdivision"));
           }
       }
@@ -237,7 +202,7 @@ public class Main {
         try (Connection connection = dataSource.getConnection()) {
           Statement stmt = connection.createStatement();
 
-          ArrayList<String> output = new ArrayList<String>();//Sarita Adve
+          ArrayList<String> output = new ArrayList<String>();
 
           ResultSet firstCheck = stmt.executeQuery("SELECT * FROM Professor WHERE netId = '" + submission.getProfessorNetId() + "'");
           int numRows = 0;
