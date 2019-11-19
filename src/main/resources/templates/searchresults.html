@@ -22,6 +22,10 @@
   <ul th:each="record : ${comboRecords}">
     <li th:text="${record}"/>
   </ul>
+  <h3>Other Professors Who've Worked with a Specified Professor:</h3>
+  <ul th:each="record : ${graphResults}">
+    <li th:text="${record}"/>
+  </ul>
   <br><br>
 </div>
 

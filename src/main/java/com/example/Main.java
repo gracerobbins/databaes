@@ -30,6 +30,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import java.io.File;
+import org.neo4j.driver.v1.*;
+
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -42,8 +45,8 @@ import java.util.Map;
 @SpringBootApplication
 public class Main {
 
-  // @Value("${spring.datasource.url}")
-  @Value("jdbc:postgresql://localhost/gracerobbins?user=gracerobbins&password=mypassword&ssl=false")
+  @Value("${spring.datasource.url}")
+  // @Value("jdbc:postgresql://localhost/gracerobbins?user=gracerobbins&password=mypassword&ssl=false")
   private String dbUrl;
 
   @Autowired
@@ -52,6 +55,65 @@ public class Main {
   public static void main(String[] args) throws Exception {
     SpringApplication.run(Main.class, args);
   }
+
+  // @RequestMapping("/graph")
+  // String graph(Map<String, Object> model) {
+  //   // String graphenedbURL = System.getenv("GRAPHENEDB_BOLT_URL");
+  //   // String graphenedbUser = System.getenv("GRAPHENEDB_BOLT_USER");
+  //   // String graphenedbPass = System.getenv("GRAPHENEDB_BOLT_PASSWORD");
+  //   String gdbURL = "https://app149777534-AXikUZ:b.XhT8pu5BrMoS.CVOh6wa6LJMsyNem@hobby-flhcicbddikmgbkeiaajgddl.dbs.graphenedb.com:24780";
+  //   String graphenedbURL = "bolt://hobby-flhcicbddikmgbkeiaajgddl.dbs.graphenedb.com:24787";
+  //   String graphenedbUser = "app149777534-AXikUZ";
+  //   String graphenedbPass = "b.XhT8pu5BrMoS.CVOh6wa6LJMsyNem";
+  //   ArrayList<String> output = new ArrayList<String>();
+    
+  //   try (Driver driver = GraphDatabase.driver(graphenedbURL, AuthTokens.basic(graphenedbUser, graphenedbPass))) {
+  //       Session session = driver.session();
+  //           session.run("CREATE (n:Person {name:'Bob'})");
+  //       StatementResult result = session.run("MATCH (n:Person) RETURN n.name AS name");
+
+  //       while ( result.hasNext() )
+  //       {
+  //         Record record = result.next();
+  //         System.out.println( record.get("name").asString() );
+  //         output.add("read from graph DB: " + record.get("name").asString() );
+  //       }
+  //       model.put("records", output);
+  //       session.close();
+  //       driver.close();
+  //       return "graph";
+  //   } catch (Exception e) {
+  //       output.add("error");
+  //       model.put("records", output);
+  //       return "graph";
+  //   }
+  // }
+  void getGraphResults(Map<String, Object> model, SearchForm submission) {
+    ArrayList<String> output = new ArrayList<String>();
+
+    String gdbURL = "https://app149777534-AXikUZ:b.XhT8pu5BrMoS.CVOh6wa6LJMsyNem@hobby-flhcicbddikmgbkeiaajgddl.dbs.graphenedb.com:24780";
+    String graphenedbURL = "bolt://hobby-flhcicbddikmgbkeiaajgddl.dbs.graphenedb.com:24787";
+    String graphenedbUser = "app149777534-AXikUZ";
+    String graphenedbPass = "b.XhT8pu5BrMoS.CVOh6wa6LJMsyNem";
+    
+    try (Driver driver = GraphDatabase.driver(graphenedbURL, AuthTokens.basic(graphenedbUser, graphenedbPass))) {
+        Session session = driver.session();
+        StatementResult result = session.run("MATCH (a:Professor{name:'" + submission.getProfessorName() + "'})-[WorkedWith]->(b:Professor) RETURN b.name AS name");
+        while ( result.hasNext() )
+        {
+          Record record = result.next();
+          output.add( record.get("name").asString() );
+        }
+
+        model.put("graphResults", output);
+        session.close();
+        driver.close();
+    } catch (Exception e) {
+        output.add("error");
+        model.put("graphResults", output);
+    }
+  }
+
 
   @RequestMapping("/")
   String index() {
@@ -86,6 +148,7 @@ public class Main {
   
   @PostMapping("/search")
   public String formPost(SearchForm submission, Map<String, Object> model) {
+    getGraphResults(model, submission);
     try (Connection connection = dataSource.getConnection()) {
       Statement stmt = connection.createStatement();
       stmt.executeUpdate("CREATE TABLE IF NOT EXISTS ResearchDivision(name VARCHAR(255) PRIMARY KEY, description VARCHAR(5000), relatedWords VARCHAR(5000))");
