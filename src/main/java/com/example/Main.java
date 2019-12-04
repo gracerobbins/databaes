@@ -45,8 +45,8 @@ import java.util.Map;
 @SpringBootApplication
 public class Main {
 
-  @Value("${spring.datasource.url}")
-  // @Value("jdbc:postgresql://localhost/gracerobbins?user=gracerobbins&password=mypassword&ssl=false")
+  // @Value("${spring.datasource.url}")
+  @Value("jdbc:postgresql://localhost/gracerobbins?user=gracerobbins&password=mypassword&ssl=false")
   private String dbUrl;
 
   @Autowired
@@ -56,31 +56,55 @@ public class Main {
     SpringApplication.run(Main.class, args);
   }
 
-  void getGraphResults(Map<String, Object> model, SearchForm submission) {
-    ArrayList<String> output = new ArrayList<String>();
-
-    String gdbURL = "https://app149777534-AXikUZ:b.XhT8pu5BrMoS.CVOh6wa6LJMsyNem@hobby-flhcicbddikmgbkeiaajgddl.dbs.graphenedb.com:24780";
-    String graphenedbURL = "bolt://hobby-flhcicbddikmgbkeiaajgddl.dbs.graphenedb.com:24787";
-    String graphenedbUser = "app149777534-AXikUZ";
-    String graphenedbPass = "b.XhT8pu5BrMoS.CVOh6wa6LJMsyNem";
+  // void getGraphResults(Map<String, Object> model, SearchForm submission) {
+  //   ArrayList<String> output = new ArrayList<String>();
+  //   String gdbURL = "https://app149777534-AXikUZ:b.XhT8pu5BrMoS.CVOh6wa6LJMsyNem@hobby-flhcicbddikmgbkeiaajgddl.dbs.graphenedb.com:24780";
+  //   String graphenedbURL = "bolt://hobby-flhcicbddikmgbkeiaajgddl.dbs.graphenedb.com:24787";
+  //   String graphenedbUser = "app149777534-AXikUZ";
+  //   String graphenedbPass = "b.XhT8pu5BrMoS.CVOh6wa6LJMsyNem";
     
-    try (Driver driver = GraphDatabase.driver(graphenedbURL, AuthTokens.basic(graphenedbUser, graphenedbPass))) {
-        Session session = driver.session();
-        StatementResult result = session.run("MATCH (a:Professor{name:'" + submission.getProfessorName() + "'})-[WorkedWith]->(b:Professor) RETURN b.name AS name");
-        while ( result.hasNext() )
-        {
-          Record record = result.next();
-          output.add( record.get("name").asString() );
-        }
+  //   try (Driver driver = GraphDatabase.driver(graphenedbURL, AuthTokens.basic(graphenedbUser, graphenedbPass))) {
+  //       Session session = driver.session();
+  //       StatementResult result = session.run("MATCH (a:Professor{name:'" + submission.getProfessorName() + "'})-[WorkedWith]->(b:Professor) RETURN b.name AS name");
+  //       while ( result.hasNext() )
+  //       {
+  //         Record record = result.next();
+  //         output.add( record.get("name").asString() );
+  //       }
 
-        model.put("graphResults", output);
-        session.close();
-        driver.close();
-    } catch (Exception e) {
-        output.add("error");
-        model.put("graphResults", output);
-    }
+  //       model.put("graphResults", output);
+  //       session.close();
+  //       driver.close();
+  //   } catch (Exception e) {
+  //       output.add("error");
+  //       model.put("graphResults", output);
+  //   }
+  // }
+
+ArrayList<String> getGraphResults(SearchForm submission) {
+  ArrayList<String> output = new ArrayList<String>();
+  String gdbURL = "https://app149777534-AXikUZ:b.XhT8pu5BrMoS.CVOh6wa6LJMsyNem@hobby-flhcicbddikmgbkeiaajgddl.dbs.graphenedb.com:24780";
+  String graphenedbURL = "bolt://hobby-flhcicbddikmgbkeiaajgddl.dbs.graphenedb.com:24787";
+  String graphenedbUser = "app149777534-AXikUZ";
+  String graphenedbPass = "b.XhT8pu5BrMoS.CVOh6wa6LJMsyNem";
+  
+  try (Driver driver = GraphDatabase.driver(graphenedbURL, AuthTokens.basic(graphenedbUser, graphenedbPass))) {
+      Session session = driver.session();
+      StatementResult result = session.run("MATCH (a:Professor{name:'" + submission.getProfessorName() + "'})-[WorkedWith]->(b:Professor) RETURN b.name AS name");
+      while ( result.hasNext() )
+      {
+        Record record = result.next();
+        output.add( record.get("name").asString() );
+      }
+
+      session.close();
+      driver.close();
+      return output;
+  } catch (Exception e) {
+      output.add("error");
+      return output;
   }
+}
 
 
   @RequestMapping("/")
@@ -138,7 +162,9 @@ public class Main {
       "   num_hits := 0; " +
       "     FOREACH key IN ARRAY key_arr " +
       "     LOOP " +
-      "       IF rec.departmentInterests ILIKE ('%' || key || '%') THEN num_hits := num_hits + 1; END IF; " +
+      "       IF rec.departmentInterests ILIKE ('%' || key || '%') THEN num_hits := num_hits + 1; " +
+      "       ELSIF rec.nondepartmentInterests ILIKE ('%' || key || '%') THEN num_hits := num_hits + 1; " +
+      "       END IF; " +
       "     END LOOP; " +
       "    IF num_hits > 0 THEN INSERT INTO temptable VALUES (rec.name, rec.email, rec.department, rec.researchdivision, num_hits); END IF; " +
       "  END LOOP; " +
@@ -154,7 +180,8 @@ public class Main {
   
   @PostMapping("/search")
   public String formPost(SearchForm submission, Map<String, Object> model) {
-    getGraphResults(model, submission);
+    ArrayList<String> graphProfessors = getGraphResults(submission);
+
     try (Connection connection = dataSource.getConnection()) {
       Statement stmt = connection.createStatement();
       if (init(stmt) == 1) {//if init throws an error
@@ -162,9 +189,29 @@ public class Main {
         return "error";
       }
 
+      ArrayList<String> fullGraphInfo = new ArrayList<String>();
+      for (int i = 0; i < graphProfessors.size(); i++) {
+        System.out.println("adding graph results for " + graphProfessors.get(i));
+        System.out.println("SELECT * FROM Professor WHERE name ILIKE '%" + graphProfessors.get(i) + "%';");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM Professor WHERE name ILIKE '%" + graphProfessors.get(i) + "%';");
+        Boolean professorFoundInSQLDatabase = false;
+        while (rs.next()) {
+          professorFoundInSQLDatabase = true;
+          fullGraphInfo.add("Professor: " + rs.getString("name") + "; Email: " + rs.getString("email") + "; Department: " + rs.getString("department") + "; Research Division: " + rs.getString("researchdivision"));
+        }
+        if (!professorFoundInSQLDatabase) {
+          fullGraphInfo.add("Professor: " + graphProfessors.get(i) + "; " + graphProfessors.get(i) + " also worked with " + submission.getProfessorName() + ", but no further information was found.");
+        }
+      }
+      model.put("graphResults", fullGraphInfo);
+
       ArrayList<String> division = new ArrayList<String>();
       if(submission.getDivisionName() != null && !submission.getDivisionName().isEmpty()){
-        ResultSet rs = stmt.executeQuery("SELECT * FROM Professor WHERE researchdivision ILIKE '%" + submission.getDivisionName() + "%'");
+        // ResultSet rs = stmt.executeQuery("SELECT * FROM Professor WHERE researchdivision ILIKE '%" + submission.getDivisionName() + "%'");
+        // while (rs.next()) {
+        //   division.add("Professor: " + rs.getString("name") + "; Email: " + rs.getString("email") + "; Department: " + rs.getString("department") + "; Research Division: " + rs.getString("researchdivision"));
+        // }
+        ResultSet rs = stmt.executeQuery("SELECT p.name, p.email, p.researchDivision, p.department, rd.description FROM Professor p JOIN ResearchDivision rd ON p.researchDivision = rd.name WHERE rd.name ILIKE '%" + submission.getDivisionName() + "%' OR rd.description ILIKE '%" + submission.getDivisionName() + "%' GROUP BY p.researchDivision, p.name, p.email, p.department, rd.description;");
         while (rs.next()) {
           division.add("Professor: " + rs.getString("name") + "; Email: " + rs.getString("email") + "; Department: " + rs.getString("department") + "; Research Division: " + rs.getString("researchdivision"));
         }
@@ -209,29 +256,65 @@ public class Main {
 
       ArrayList<String> combo = new ArrayList<String>();
       int numCriteria = 0;
-      String query = "SELECT * FROM Professor WHERE ";
-      if(submission.getDepartmentName() != null && !submission.getDepartmentName().isEmpty()){
-        query += "department ILIKE '%" + submission.getDepartmentName() + "%'";
+      // String query = "SELECT * FROM Professor WHERE ";
+      // if(submission.getDepartmentName() != null && !submission.getDepartmentName().isEmpty()){
+      //   query += "department ILIKE '%" + submission.getDepartmentName() + "%'";
+      //   numCriteria++;
+      // }
+      // if(submission.getDivisionName() != null && !submission.getDivisionName().isEmpty()){
+      //   if (numCriteria > 0) {
+      //     query += " AND ";
+      //   }
+      //   query += "researchdivision ILIKE '%" + submission.getDivisionName() + "%'";
+      //   numCriteria++;
+      // }
+      // if(submission.getProfessorName() != null && !submission.getProfessorName().isEmpty()){
+      //   if (numCriteria > 0) {
+      //     query += " AND ";
+      //   }
+      //   query += "name ILIKE '%" + submission.getProfessorName() + "%'";
+      //   numCriteria++;
+      // }
+
+      String createView = "CREATE OR REPLACE VIEW professorInterests AS SELECT p.name, p.email, p.department, p.researchDivision, pi.nondepartmentInterests, pi.departmentInterests FROM Professor p JOIN PersonalInterests pi ON p.netId = pi.professor; ";
+      stmt.execute(createView);
+      String query = "";
+      if (submission.getDepartmentName() != null && !submission.getDepartmentName().isEmpty()){
+        query += "SELECT * FROM professorInterests WHERE department ILIKE '%" + submission.getDepartmentName() + "%' ";
         numCriteria++;
       }
-      if(submission.getDivisionName() != null && !submission.getDivisionName().isEmpty()){
+      if (submission.getDivisionName() != null && !submission.getDivisionName().isEmpty()){
         if (numCriteria > 0) {
-          query += " AND ";
+          query += " INTERSECT ";
         }
-        query += "researchdivision ILIKE '%" + submission.getDivisionName() + "%'";
+        query += "SELECT * FROM professorInterests WHERE researchDivision ILIKE '%" + submission.getDivisionName() + "%' ";
         numCriteria++;
       }
-      if(submission.getProfessorName() != null && !submission.getProfessorName().isEmpty()){
+      if (submission.getProfessorName() != null && !submission.getProfessorName().isEmpty()){
         if (numCriteria > 0) {
-          query += " AND ";
+          query += " INTERSECT ";
         }
-        query += "name ILIKE '%" + submission.getProfessorName() + "%'";
+        query += "SELECT * FROM professorInterests WHERE name ILIKE '%" + submission.getProfessorName() + "%' ";
         numCriteria++;
       }
+      if (submission.getKeywords() != null && !submission.getKeywords().isEmpty()){
+        if (numCriteria > 0) {
+          query += " INTERSECT ";
+        }
+        String[] keys = submission.getKeywords().split(",");
+        query += "SELECT * FROM professorInterests WHERE nondepartmentinterests ILIKE '%" + keys[0] + "%' OR departmentinterests ILIKE '%" + keys[0] + "%' ";
+        for (int i = 1; i < keys.length; i++) {
+          query += "OR nondepartmentinterests ILIKE '%" + keys[i] + "%' ";
+          query += "OR departmentinterests ILIKE '%" + keys[i] + "%' ";
+        }
+        numCriteria++;
+      }
+
       if (numCriteria > 0) {
+        System.out.println("built query: " + query);
         ResultSet rs = stmt.executeQuery(query);
         while (rs.next()) {
-          combo.add("Professor: " + rs.getString("name") + "; Email: " + rs.getString("email") + "; Department: " + rs.getString("department") + "; Research Division: " + rs.getString("researchdivision"));
+          combo.add("Professor: " + rs.getString("name") + "; Email: " + rs.getString("email") + "; Department: " + rs.getString("department") + "; Research Division: " + rs.getString("researchDivision"));
         }
       }
       model.put("comboRecords", combo);
