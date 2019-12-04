@@ -45,8 +45,8 @@ import java.util.Map;
 @SpringBootApplication
 public class Main {
 
-  // @Value("${spring.datasource.url}")
-  @Value("jdbc:postgresql://localhost/gracerobbins?user=gracerobbins&password=mypassword&ssl=false")
+  @Value("${spring.datasource.url}")
+  // @Value("jdbc:postgresql://localhost/gracerobbins?user=gracerobbins&password=mypassword&ssl=false")
   private String dbUrl;
 
   @Autowired
