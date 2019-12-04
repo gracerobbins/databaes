@@ -106,6 +106,86 @@ ArrayList<String> getGraphResults(SearchForm submission) {
   }
 }
 
+ArrayList<String> deleteGraphNode(String name) {
+  ArrayList<String> output = new ArrayList<String>();
+  String gdbURL = "https://app149777534-AXikUZ:b.XhT8pu5BrMoS.CVOh6wa6LJMsyNem@hobby-flhcicbddikmgbkeiaajgddl.dbs.graphenedb.com:24780";
+  String graphenedbURL = "bolt://hobby-flhcicbddikmgbkeiaajgddl.dbs.graphenedb.com:24787";
+  String graphenedbUser = "app149777534-AXikUZ";
+  String graphenedbPass = "b.XhT8pu5BrMoS.CVOh6wa6LJMsyNem";
+  
+  try (Driver driver = GraphDatabase.driver(graphenedbURL, AuthTokens.basic(graphenedbUser, graphenedbPass))) {
+      Session session = driver.session();
+      StatementResult result = session.run("MATCH (n:Professor { name: '" + name + "' }) DETACH DELETE n");
+
+      output.add(name + " was removed from the graph database");
+      System.out.println("removed?");
+
+      session.close();
+      driver.close();
+      return output;
+  } catch (Exception e) {
+      output.add("error");
+      return output;
+  }
+}
+
+ArrayList<String> updateGraphNode(UpdateForm submission) {
+  ArrayList<String> output = new ArrayList<String>();
+  if (submission.getCoworkers() == null || submission.getCoworkers().length() <= 0) {
+    return null;
+  }
+  String gdbURL = "https://app149777534-AXikUZ:b.XhT8pu5BrMoS.CVOh6wa6LJMsyNem@hobby-flhcicbddikmgbkeiaajgddl.dbs.graphenedb.com:24780";
+  String graphenedbURL = "bolt://hobby-flhcicbddikmgbkeiaajgddl.dbs.graphenedb.com:24787";
+  String graphenedbUser = "app149777534-AXikUZ";
+  String graphenedbPass = "b.XhT8pu5BrMoS.CVOh6wa6LJMsyNem";
+  
+  try (Driver driver = GraphDatabase.driver(graphenedbURL, AuthTokens.basic(graphenedbUser, graphenedbPass))) {
+      Session session = driver.session();
+      String[] coworkers = submission.getCoworkers().split(",");
+      StatementResult result = session.run("MATCH (a:Professor{name:'" + submission.getProfessorName() + "'})-[r:WORKEDWITH]->() DELETE r");//delete the existing relationships
+      for (int i = 0; i < coworkers.length; i++) {
+        System.out.println("adding relationship with: " + coworkers[i]);
+        result = session.run("MATCH (a:Professor{name:'" + submission.getProfessorName() + "'}) , (b:Professor{name:'" + coworkers[i] + "'}) CREATE (a)-[r:WORKEDWITH]->(b) CREATE (b)-[r2:WORKEDWITH]->(a) RETURN type(r)");//create the node relationship
+      }
+      session.close();
+      driver.close();
+      return output;
+  } catch (Exception e) {
+      output.add("error");
+      return output;
+  }
+}
+
+ArrayList<String> addGraphNode(UpdateForm submission) {
+  ArrayList<String> output = new ArrayList<String>();
+  if (submission.getProfessorEmail() == null || submission.getProfessorEmail().length() <= 0) {
+    return null;
+  }
+  if (submission.getProfessorName() == null || submission.getProfessorName().length() <= 0) {
+    return null;
+  }
+  if (submission.getProfessorDepartment() == null || submission.getProfessorDepartment().length() <= 0) {
+    return null;
+  }
+  String gdbURL = "https://app149777534-AXikUZ:b.XhT8pu5BrMoS.CVOh6wa6LJMsyNem@hobby-flhcicbddikmgbkeiaajgddl.dbs.graphenedb.com:24780";
+  String graphenedbURL = "bolt://hobby-flhcicbddikmgbkeiaajgddl.dbs.graphenedb.com:24787";
+  String graphenedbUser = "app149777534-AXikUZ";
+  String graphenedbPass = "b.XhT8pu5BrMoS.CVOh6wa6LJMsyNem";
+  
+  try (Driver driver = GraphDatabase.driver(graphenedbURL, AuthTokens.basic(graphenedbUser, graphenedbPass))) {
+      Session session = driver.session();
+      String query = "MERGE (a:Professor{name:'" + submission.getProfessorName() + "', email: '" + submission.getProfessorEmail() + "', department: '" + submission.getProfessorDepartment() + "'}) RETURN a";
+      System.out.println(query);
+      StatementResult result = session.run(query);//delete the existing relationships
+      updateGraphNode(submission);
+      session.close();
+      driver.close();
+      return output;
+  } catch (Exception e) {
+      output.add("error");
+      return output;
+  }
+}
 
   @RequestMapping("/")
   String index() {
@@ -376,6 +456,11 @@ ArrayList<String> getGraphResults(SearchForm submission) {
               stmt.execute("UPDATE Professor SET researchDivision = '" + submission.getDivisionName() + "' WHERE netId = '" + submission.getProfessorNetId() + "'");
               output.add("New research division: " + submission.getDivisionName());
             }
+            if (submission.getCoworkers() != null && submission.getCoworkers() != "") {
+              output.add("Updating coworkers for " + submission.getProfessorName() + "...");
+              updateGraphNode(submission);
+              output.add("New coworkers: " + submission.getCoworkers());
+            }
             prof.close();
           }
           else {
@@ -409,7 +494,8 @@ ArrayList<String> getGraphResults(SearchForm submission) {
           if (numRows == 0 && numDivisions > 0) {//if the professor does not exist
             if (submission.getProfessorName() != null && submission.getProfessorName() != "" && submission.getProfessorNetId() != null && submission.getProfessorNetId() != "") {
               stmt.execute("INSERT INTO Professor VALUES ('" + submission.getProfessorNetId() + "', '" + submission.getProfessorName() + "', '" + submission.getProfessorEmail() + "', '" + submission.getProfessorDepartment() + "', '" + submission.getDivisionName() + "')");
-              output.add("Professor " + submission.getProfessorName() + " added to the database!");            
+              output.add("Professor " + submission.getProfessorName() + " added to the database!");     
+              addGraphNode(submission);       
             }
             else {
               output.add("Please enter non-null name and netid");
@@ -435,10 +521,13 @@ ArrayList<String> getGraphResults(SearchForm submission) {
 
           ResultSet firstCheck = stmt.executeQuery("SELECT * FROM Professor WHERE netId = '" + submission.getProfessorNetId() + "'");
           int numRows = 0;
+          String name = "zzzzzz";
           while (firstCheck.next()) {
+            name = firstCheck.getString("name");
+            System.out.println("deleting node with name " + name);
             numRows++;
           }
-          if (numRows != 0) {//if the professor does not exist
+          if (numRows != 0) {//if the professor does exist
             if (submission.getProfessorNetId() != null && submission.getProfessorNetId() != "") {
               stmt.execute("UPDATE student SET professor = NULL WHERE professor = '" + submission.getProfessorNetId() + "'");
               stmt.execute("DELETE FROM personalInterests WHERE professor = '" + submission.getProfessorNetId() + "'");
@@ -448,9 +537,10 @@ ArrayList<String> getGraphResults(SearchForm submission) {
             else {
               output.add("Please enter non-null netid");
             }
+            deleteGraphNode(name);
           }
           else {
-            output.add("Professor with netId " + submission.getProfessorNetId() + " does not exist in out database.");
+            output.add("Professor with netId " + submission.getProfessorNetId() + " does not exist in our database.");
           }
 
           model.put("updateResults", output);

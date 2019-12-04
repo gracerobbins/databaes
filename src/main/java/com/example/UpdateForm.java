@@ -6,6 +6,7 @@ public class UpdateForm {
     private String professorEmail;
     private String professorDepartment;
     private String divisionName;
+    private String coworkers;
 
     //netid
     public String getProfessorNetId() {
@@ -45,5 +46,13 @@ public class UpdateForm {
     }
     public void setDivisionName(String divisionName) {
         this.divisionName = divisionName;
+    }
+
+    //coworkers
+    public String getCoworkers() {
+        return coworkers;
+    }
+    public void setCoworkers(String coworkers) {
+        this.coworkers = coworkers;
     }
 }
