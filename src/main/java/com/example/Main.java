@@ -45,8 +45,8 @@ import java.util.Map;
 @SpringBootApplication
 public class Main {
 
-  @Value("${spring.datasource.url}")
-  // @Value("jdbc:postgresql://localhost/gracerobbins?user=gracerobbins&password=mypassword&ssl=false")
+  // @Value("${spring.datasource.url}")
+  @Value("jdbc:postgresql://localhost/gracerobbins?user=gracerobbins&password=mypassword&ssl=false")
   private String dbUrl;
 
   @Autowired
@@ -194,7 +194,7 @@ public class Main {
         ResultSet rs = stmt.executeQuery("SELECT * FROM match_interests('" + submission.getKeywords() + "') ORDER BY hits DESC");
         while (rs.next()) {
           System.out.println("Adding professor " + rs.getString("n") + " to model.");
-          keyword.add("You share " + rs.getInt("hits") + " interests with Professor " + rs.getString("n") + "; Interests: " + rs.getString("e"));
+          keyword.add("You share " + rs.getInt("hits") + " interests with Professor " + rs.getString("n") + "; Email: " + rs.getString("e") + "; Department: " + rs.getString("dpt") + "; Research Division: " + rs.getString("div"));
         }
           // String[] words = submission.getKeywords().split(", ");
           // for (int i = 0; i < words.length; i++) {
