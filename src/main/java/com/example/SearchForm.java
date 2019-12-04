@@ -5,6 +5,7 @@ public class SearchForm {
     private String professorName;
     private String divisionName;
     private String departmentName;
+    private String keywords;
 
     public String getProfessorName() {
         return professorName;
@@ -25,5 +26,12 @@ public class SearchForm {
     }
     public void setDepartmentName(String departmentName) {
         this.departmentName = departmentName;
+    }
+
+    public String getKeywords() {
+        return keywords;
+    }
+    public void setKeywords(String keywords) {
+        this.keywords = keywords;
     }
 }

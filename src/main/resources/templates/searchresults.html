@@ -18,6 +18,10 @@
   <ul th:each="record : ${departmentRecords}">
     <li th:text="${record}"/>
   </ul>
+  <h3>Professors With Your Interests:</h3>
+  <ul th:each="record : ${keywordRecords}">
+    <li th:text="${record}"/>
+  </ul>
   <h3>Professors Matching All Given Criteria:</h3>
   <ul th:each="record : ${comboRecords}">
     <li th:text="${record}"/>

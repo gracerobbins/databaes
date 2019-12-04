@@ -113,18 +113,55 @@ public class Main {
   public String formGet() {
     return "i am returning the form here";
   }
+
+  int init(Statement stmt) {
+    try {
+      stmt.executeUpdate("CREATE TABLE IF NOT EXISTS ResearchDivision(name VARCHAR(255) PRIMARY KEY, description VARCHAR(5000), relatedWords VARCHAR(5000))");
+      stmt.executeUpdate("CREATE TABLE IF NOT EXISTS Professor(netId VARCHAR(15) PRIMARY KEY, name VARCHAR(255) NOT NULL, email VARCHAR(255) NOT NULL, department VARCHAR(255), researchDivision VARCHAR(255) REFERENCES ResearchDivision(name))");
+      stmt.executeUpdate("CREATE TABLE IF NOT EXISTS Student(netId VARCHAR(15) PRIMARY KEY, name VARCHAR(255) NOT NULL, yearGraduating INT, major VARCHAR(255) NOT NULL, professor VARCHAR(15) REFERENCES Professor(netId))");
+      stmt.executeUpdate("CREATE TABLE IF NOT EXISTS PersonalInterests(interest_id INT GENERATED ALWAYS AS IDENTITY, professor VARCHAR(15) REFERENCES Professor(netId), student VARCHAR(15) REFERENCES Student(netId), departmentInterests VARCHAR(5000), nondepartmentInterests VARCHAR(5000))");
+      stmt.executeUpdate("CREATE TABLE IF NOT EXISTS Qualifications(qualificationId INT GENERATED ALWAYS AS IDENTITY, studentId VARCHAR(15) NOT NULL REFERENCES Student(netId), skill VARCHAR(255), organization VARCHAR(255), award VARCHAR(255))");
+
+      String createProcedure = "CREATE OR REPLACE FUNCTION match_interests(keywords VARCHAR) RETURNS TABLE(n VARCHAR, e VARCHAR, dpt VARCHAR, div VARCHAR, hits INTEGER) AS $$ " + 
+      "DECLARE cur REFCURSOR; " +
+      "key_arr TEXT[]; " +
+      "num_hits INTEGER; " +
+      "key TEXT; " +
+      "rec RECORD; " +
+      "BEGIN " +
+      "  CREATE TEMP TABLE temptable(n VARCHAR(255), e VARCHAR(255), dpt VARCHAR(255), div VARCHAR(255), hits INTEGER) ON COMMIT DROP; " +
+      "  SELECT regexp_split_to_array(keywords, ',') INTO key_arr; " +
+      "  OPEN cur FOR SELECT * FROM Professor a INNER JOIN PersonalInterests b ON a.netId = b.professor; " +
+      "  LOOP " +
+      "   FETCH cur INTO rec; " +
+      "   EXIT WHEN NOT FOUND; " +
+      "   num_hits := 0; " +
+      "     FOREACH key IN ARRAY key_arr " +
+      "     LOOP " +
+      "       IF rec.departmentInterests ILIKE ('%' || key || '%') THEN num_hits := num_hits + 1; END IF; " +
+      "     END LOOP; " +
+      "    IF num_hits > 0 THEN INSERT INTO temptable VALUES (rec.name, rec.email, rec.department, rec.researchdivision, num_hits); END IF; " +
+      "  END LOOP; " +
+      "  RETURN QUERY SELECT * FROM temptable; " +
+      "END; " +
+      "$$ LANGUAGE plpgsql;";
+      stmt.execute(createProcedure);
+      return 0;
+    } catch (Exception e) {
+      return 1;
+    }
+  }
   
   @PostMapping("/search")
   public String formPost(SearchForm submission, Map<String, Object> model) {
     getGraphResults(model, submission);
     try (Connection connection = dataSource.getConnection()) {
       Statement stmt = connection.createStatement();
-      stmt.executeUpdate("CREATE TABLE IF NOT EXISTS ResearchDivision(name VARCHAR(255) PRIMARY KEY, description VARCHAR(5000), relatedWords VARCHAR(5000))");
-      stmt.executeUpdate("CREATE TABLE IF NOT EXISTS Professor(netId VARCHAR(15) PRIMARY KEY, name VARCHAR(255) NOT NULL, email VARCHAR(255) NOT NULL, department VARCHAR(255), researchDivision VARCHAR(255) REFERENCES ResearchDivision(name))");
-      stmt.executeUpdate("CREATE TABLE IF NOT EXISTS Student(netId VARCHAR(15) PRIMARY KEY, name VARCHAR(255) NOT NULL, yearGraduating INT, major VARCHAR(255) NOT NULL, professor VARCHAR(15) REFERENCES Professor(netId))");
-      stmt.executeUpdate("CREATE TABLE IF NOT EXISTS PersonalInterests(interest_id INT GENERATED ALWAYS AS IDENTITY, professor VARCHAR(15) REFERENCES Professor(netId), student VARCHAR(15) REFERENCES Student(netId), departmentInterests VARCHAR(5000), nondepartmentInterests VARCHAR(5000))");
-      stmt.executeUpdate("CREATE TABLE IF NOT EXISTS Qualifications(qualificationId INT GENERATED ALWAYS AS IDENTITY, studentId VARCHAR(15) NOT NULL REFERENCES Student(netId), skill VARCHAR(255), organization VARCHAR(255), award VARCHAR(255))");
-      
+      if (init(stmt) == 1) {//if init throws an error
+        model.put("message", "Sorry, an error occurred. Please try again.");
+        return "error";
+      }
+
       ArrayList<String> division = new ArrayList<String>();
       if(submission.getDivisionName() != null && !submission.getDivisionName().isEmpty()){
         ResultSet rs = stmt.executeQuery("SELECT * FROM Professor WHERE researchdivision ILIKE '%" + submission.getDivisionName() + "%'");
@@ -151,6 +188,24 @@ public class Main {
           }
       }
       model.put("departmentRecords", department);
+
+      ArrayList<String> keyword = new ArrayList<String>();
+      if(submission.getKeywords() != null && !submission.getKeywords().isEmpty()){
+        ResultSet rs = stmt.executeQuery("SELECT * FROM match_interests('" + submission.getKeywords() + "') ORDER BY hits DESC");
+        while (rs.next()) {
+          System.out.println("Adding professor " + rs.getString("n") + " to model.");
+          keyword.add("You share " + rs.getInt("hits") + " interests with Professor " + rs.getString("n") + "; Interests: " + rs.getString("e"));
+        }
+          // String[] words = submission.getKeywords().split(", ");
+          // for (int i = 0; i < words.length; i++) {
+          //   System.out.println(words[i]);
+          //   ResultSet rs = stmt.executeQuery("SELECT * FROM Professor a INNER JOIN PersonalInterests b ON a.netId = b.professor WHERE b.departmentInterests ILIKE '%" + words[i] + "%'");
+          //   while (rs.next()) {
+          //     keyword.add("Professor: " + rs.getString("name") + "; Interests: " + rs.getString("departmentInterests"));
+          //   }
+          // }
+      }
+      model.put("keywordRecords", keyword);
 
       ArrayList<String> combo = new ArrayList<String>();
       int numCriteria = 0;
